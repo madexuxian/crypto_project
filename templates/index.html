@@ -1,182 +1,143 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>加密货币多维度价差监控</title>
-    <!-- 引入 Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Chart.js 及其时间适配器 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
-    <style>
-        /* 自定义一些激活状态的样式 */
-        .main-tab.active { background-color: #007bff; color: white; }
-        .currency-tab.active { background-color: #e2e8f0; border-color: #4a5568; }
-    </style>
-</head>
-<body class="bg-gray-100 text-gray-800">
+{% extends "base.html" %}
 
-    <div class="flex h-screen">
-        <!-- 左侧导航栏 -->
-        <aside class="w-64 bg-gray-800 text-white flex flex-col">
-            <div class="p-4 border-b border-gray-700">
-                <h1 class="text-xl font-bold">价差监控</h1>
-            </div>
-            <nav class="flex-1 p-2 space-y-2">
-                <a href="#" class="main-tab flex items-center px-4 py-2 rounded-md hover:bg-gray-700 active" data-tab-target="#spot-spread-content">跨平台现货价差</a>
-                <a href="#" class="main-tab flex items-center px-4 py-2 rounded-md hover:bg-gray-700" data-tab-target="#spot-perp-content">现货永续合约价差</a>
-                <a href="#" class="main-tab flex items-center px-4 py-2 rounded-md hover:bg-gray-700" data-tab-target="#spot-delivery-content">现货交割合约价差</a>
-                <a href="#" class="main-tab flex items-center px-4 py-2 rounded-md hover:bg-gray-700" data-tab-target="#triangular-content">三角价差</a>
-                <a href="#" class="main-tab flex items-center px-4 py-2 rounded-md hover:bg-gray-700" data-tab-target="#vip-content">VIP组合价差</a>
-            </nav>
-            <div class="p-4 border-t border-gray-700">
-                <p>欢迎, <strong>{{ user.username }}</strong>!</p>
-                <a href="{% url 'logout' %}" class="text-red-400 hover:text-red-300">登出</a>
-            </div>
-        </aside>
-
-        <!-- 右侧主内容区 -->
-        <main class="flex-1 p-6 overflow-y-auto">
-
-            <!-- 1. 跨平台现货价差内容 -->
-            <div id="spot-spread-content" class="main-content-pane">
-                <div class="border-b border-gray-200 mb-4">
-                    <nav class="-mb-px flex space-x-4" aria-label="Currency tabs">
-                        <button class="currency-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 active" data-currency-target="#btc-charts">BTCUSDT</button>
-                        <button class="currency-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-currency-target="#eth-charts">ETHUSDT</button>
-                        <button class="currency-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-currency-target="#sol-charts">SOLUSDT</button>
-                    </nav>
-                </div>
-
-                <!-- BTC 图表容器 -->
-                <div id="btc-charts" class="currency-content-pane">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="btcusdt-htx-binance-chart"></canvas></div>
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="btcusdt-htx-okx-chart"></canvas></div>
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="btcusdt-okx-binance-chart"></canvas></div>
-                    </div>
-                </div>
-                <!-- ETH 图表容器 -->
-                <div id="eth-charts" class="currency-content-pane hidden">
-                     <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="ethusdt-htx-binance-chart"></canvas></div>
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="ethusdt-htx-okx-chart"></canvas></div>
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="ethusdt-okx-binance-chart"></canvas></div>
-                    </div>
-                </div>
-                <!-- SOL 图表容器 -->
-                <div id="sol-charts" class="currency-content-pane hidden">
-                     <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="solusdt-htx-binance-chart"></canvas></div>
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="solusdt-htx-okx-chart"></canvas></div>
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="solusdt-okx-binance-chart"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 其他功能的占位内容 -->
-            <div id="spot-perp-content" class="main-content-pane hidden"><h2 class="text-2xl font-bold">现货永续合约价差 (功能开发中...)</h2></div>
-            <div id="spot-delivery-content" class="main-content-pane hidden"><h2 class="text-2xl font-bold">现货交割合约价差 (功能开发中...)</h2></div>
-            <div id="triangular-content" class="main-content-pane hidden"><h2 class="text-2xl font-bold">三角价差 (功能开发中...)</h2></div>
-            <div id="vip-content" class="main-content-pane hidden"><h2 class="text-2xl font-bold">VIP组合价差 (功能开发中...)</h2></div>
-        </main>
+{% block content %}
+<div class="d-flex">
+    <div class="sidebar" style="width: 250px; background: #f8f9fa; padding: 15px; height: 100vh; border-right: 1px solid #dee2e6;">
+        <h4>Monitor</h4>
+        <ul id="main-tabs" class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" onclick="showTab('spreads', this)">Cross-Platform Spreads</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showTab('triangular', this)">Triangular Arbitrage</a>
+            </li>
+        </ul>
     </div>
+    <div class="content flex-grow-1 p-4">
+        <div id="spreads" class="tab-content active">
+            </div>
+        <div id="triangular" class="tab-content">
+            </div>
+    </div>
+</div>
 
-    {{ tracked_pairs|json_script:"tracked-pairs-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script>
+        // Tab switching logic
+        function showTab(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('#main-tabs li').forEach(li => li.classList.remove('active'));
+            element.classList.add('active');
+        }
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const charts = {}; // 用于存储所有图表实例
+        function showInnerTab(contentId, tabId, element) {
+            document.querySelectorAll(`#${contentId} .inner-tab-content`).forEach(tab => tab.classList.remove('active'));
+            document.getElementById(`${contentId}-${tabId}`).classList.add('active');
+            document.querySelectorAll(`#${contentId}-inner-tabs div`).forEach(div => div.classList.remove('active'));
+            element.classList.add('active');
+        }
 
-            // --- 1. Tab 切换逻辑 ---
-            const mainTabs = document.querySelectorAll('.main-tab');
-            const mainPanes = document.querySelectorAll('.main-content-pane');
-            mainTabs.forEach(tab => {
-                tab.addEventListener('click', e => {
-                    e.preventDefault();
-                    mainTabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    mainPanes.forEach(p => p.classList.add('hidden'));
-                    document.querySelector(tab.dataset.tabTarget).classList.remove('hidden');
-                });
+        const chartInstances = {};
+
+        // 【FIXED】Function to create charts with multiple datasets for spreads
+        function createSpreadChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        { label: 'Binance vs HTX', data: [], borderColor: 'rgb(255, 99, 132)', tension: 0.1 },
+                        { label: 'Binance vs OKX', data: [], borderColor: 'rgb(54, 162, 235)', tension: 0.1 },
+                        { label: 'HTX vs OKX', data: [], borderColor: 'rgb(75, 192, 192)', tension: 0.1 }
+                    ]
+                },
+                options: {
+                    scales: { x: { type: 'time', time: { unit: 'second' } }, y: { title: { display: true, text: 'Spread %' } } },
+                    maintainAspectRatio: false
+                }
             });
+        }
 
-            const currencyTabs = document.querySelectorAll('.currency-tab');
-            const currencyPanes = document.querySelectorAll('.currency-content-pane');
-            currencyTabs.forEach(tab => {
-                tab.addEventListener('click', e => {
-                    e.preventDefault();
-                    currencyTabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    currencyPanes.forEach(p => p.classList.add('hidden'));
-                    document.querySelector(tab.dataset.currencyTarget).classList.remove('hidden');
-                });
+        // 【FIXED】Function to create single-dataset charts
+        function createArbitrageChart(canvasId, label) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: [{ label: label, data: [], borderColor: 'rgb(153, 102, 255)', tension: 0.1 }] },
+                options: {
+                    scales: { x: { type: 'time', time: { unit: 'second' } }, y: { title: { display: true, text: 'Profit %' } } },
+                    maintainAspectRatio: false
+                }
             });
+        }
 
-            // --- 2. 初始化所有图表 ---
-            function createChart(canvasId, title) {
-                const ctx = document.getElementById(canvasId).getContext('2d');
-                charts[canvasId] = new Chart(ctx, {
-                    type: 'line',
-                    data: { datasets: [{ label: title, data: [], tension: 0.1, fill: true, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)' }] },
-                    options: {
-                        responsive: true,
-                        plugins: { title: { display: true, text: title } },
-                        scales: {
-                            x: { type: 'time', time: { unit: 'second', displayFormats: { second: 'HH:mm:ss' } } },
-                            y: { ticks: { callback: v => `${v.toFixed(4)} %` } }
-                        },
-                        animation: { duration: 200 }
-                    }
-                });
+        // Initialize all charts
+        ['btcusdt', 'ethusdt', 'solusdt'].forEach(pair => createSpreadChart(`${pair}Chart`));
+        ['usdt-btc-eth-usdt', 'usdt-sol-btc-usdt', 'usdt-sol-eth-usdt'].forEach(path => createArbitrageChart(`${path}-Chart`, 'Profit %'));
+
+        function addData(chart, datasetIndex, dataPoint) {
+            const dataset = chart.data.datasets[datasetIndex];
+            if(dataset){
+                dataset.data.push(dataPoint);
+                if (dataset.data.length > 100) {
+                    dataset.data.shift();
+                }
             }
+        }
 
-            const pairs = JSON.parse(document.getElementById('tracked-pairs-data').textContent);
-            pairs.forEach(pair => {
-                const p = pair.toLowerCase();
-                createChart(`${p}-htx-binance-chart`, `HTX / Binance 价差 (%)`);
-                createChart(`${p}-htx-okx-chart`, `HTX / OKX 价差 (%)`);
-                createChart(`${p}-okx-binance-chart`, `OKX / Binance 价差 (%)`);
-            });
+        // WebSocket for Spreads
+        const spreadSocket = new WebSocket('ws://' + window.location.host + '/ws/price_spread/');
+        spreadSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            const pairLower = data.pair.toLowerCase();
+            const chart = chartInstances[`${pairLower}Chart`];
 
+            if (chart && data.spreads) {
+                const timestamp = data.timestamp * 1000;
 
-            // --- 3. WebSocket 逻辑 ---
-            const socket = new WebSocket(`ws://${window.location.host}/ws/price_data/`);
-
-            socket.onopen = (e) => console.log("WebSocket 连接成功!");
-            socket.onclose = (e) => console.error("WebSocket 连接关闭!", e);
-            socket.onerror = (e) => console.error("WebSocket 错误!", e);
-
-            socket.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type !== 'spread_update') return;
-
-                const pair = data.pair.toLowerCase();
-                const prices = data.prices;
-                const timestamp = new Date(data.timestamp * 1000);
-
-                const updatePairwiseChart = (ex1, ex2) => {
-                    const chartId = `${pair}-${ex1}-${ex2}-chart`;
-                    if (charts[chartId] && prices[ex1] && prices[ex2]) {
-                        const avgPrice = (prices[ex1] + prices[ex2]) / 2;
-                        const spreadPercentage = ((prices[ex1] - prices[ex2]) / avgPrice) * 100;
-
-                        const chart = charts[chartId];
-                        chart.data.datasets[0].data.push({ x: timestamp, y: spreadPercentage });
-                        if (chart.data.datasets[0].data.length > 150) {
-                            chart.data.datasets[0].data.shift();
-                        }
-                        chart.update('none');
-                    }
+                // 【FIXED】 Map backend keys to chart dataset indices
+                const spreadMapping = {
+                    'binance_vs_htx': 0,
+                    'binance_vs_okx': 1,
+                    'htx_vs_okx': 2
                 };
 
-                updatePairwiseChart('htx', 'binance');
-                updatePairwiseChart('htx', 'okx');
-                updatePairwiseChart('okx', 'binance');
-            };
-        });
-    </script>
-</body>
-</html>
+                for (const key in spreadMapping) {
+                    if (data.spreads[key]) {
+                        const spreadValue = parseFloat(data.spreads[key].spread_percentage);
+                        addData(chart, spreadMapping[key], { x: timestamp, y: spreadValue });
+                    }
+                }
+                chart.update('none'); // Update chart after adding all new data points
+
+                const pricesDiv = document.getElementById(`prices-${pairLower}`);
+                let pricesHtml = '';
+                for (const [exchange, price] of Object.entries(data.prices)) {
+                    pricesHtml += `<span>${exchange.toUpperCase()}: ${parseFloat(price).toFixed(4)}</span> | `;
+                }
+                pricesDiv.innerHTML = pricesHtml;
+            }
+        };
+
+        // WebSocket for Triangular Arbitrage
+        const triangularSocket = new WebSocket('ws://' + window.location.host + '/ws/triangular_arbitrage/');
+        triangularSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            const pathId = data.path.toLowerCase();
+            const chart = chartInstances[`${pathId}-Chart`];
+            if (chart) {
+                const dataset = chart.data.datasets[0];
+                dataset.data.push({ x: data.timestamp * 1000, y: parseFloat(data.profit_percentage) });
+                 if (dataset.data.length > 100) {
+                    dataset.data.shift();
+                }
+                chart.update('none');
+            }
+        };
+
+        spreadSocket.onclose = () => console.error('Spread socket closed unexpectedly');
+        triangularSocket.onclose = () => console.error('Triangular arbitrage socket closed unexpectedly');
+</script>
+{% endblock %}
