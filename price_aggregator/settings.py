@@ -2,6 +2,8 @@
 import os
 from pathlib import Path
 
+# from cryptography.fernet import Fernet
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -42,10 +44,27 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'price_aggregator.urls'
 
+# TEMPLATES = [
+#     {
+#         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+#         'DIRS': [BASE_DIR / 'templates'], # 添加全局模板目录
+#         'APP_DIRS': True,
+#         'OPTIONS': {
+#             'context_processors': [
+#                 'django.template.context_processors.debug',
+#                 'django.template.context_processors.request',
+#                 'django.contrib.auth.context_processors.auth',
+#                 'django.contrib.messages.context_processors.messages',
+#             ],
+#         },
+#     },
+# ]
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'], # 添加全局模板目录
+        # 【修改】告诉Django在项目根目录的'templates'文件夹中寻找模板
+        'DIRS': [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -157,5 +176,15 @@ LOGGING = {
 # --- 自定义项目配置 ---
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
-TRACKED_PAIRS = ['btcusdt', 'ethusdt', 'solusdt']
+
+TRACKED_PAIRS = [
+    'btcusdt', 'ethusdt', 'solusdt',
+    'ethbtc', 'solbtc', 'soleth'
+]
 BROADCAST_INTERVAL = 0.8
+
+
+# 关键：确保你的 settings.py 中有一个强大的、随机生成的SECRET_KEY
+# 并且额外生成一个专门用于数据加密的密钥
+# FERNET_KEY = Fernet.generate_key()
+FERNET_KEY = 'LSTlyLgxLiLX6UXHooqS-dq6WOL4inOuAY0ea5eBPZw='
