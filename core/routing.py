@@ -1,8 +1,9 @@
-# core/routing.py
-from django.urls import path # 更改了导入
-from . import consumers
+# crypto_project/routing.py
+
+from django.urls import re_path
+from core import consumers
 
 websocket_urlpatterns = [
-    # 为了更稳定地匹配，将 re_path 更改为 path
-    path('ws/price_data/', consumers.PriceConsumer.as_asgi()),
+    # 使用正则表达式的具名组 (?P<group_name>\w+) 来捕获 URL 片段
+    re_path(r'ws/(?P<group_name>\w+)/$', consumers.PriceConsumer.as_asgi()),
 ]

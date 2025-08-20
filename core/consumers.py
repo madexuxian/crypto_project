@@ -1,36 +1,44 @@
 # core/consumers.py
 import json
-import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-logger = logging.getLogger(__name__)
 
 class PriceConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # 只有登录的用户才能连接
-        if self.scope["user"].is_authenticated:
-            self.room_group_name = 'price_spread'
-            # 加入一个Channel Group，所有加入该组的consumer都能收到消息
-            await self.channel_layer.group_add(
-                self.room_group_name,
-                self.channel_name
-            )
-            await self.accept()
-            logger.info(f"User {self.scope['user']} connected to WebSocket.")
-        else:
-            await self.close()
-            logger.warning("Unauthenticated user tried to connect to WebSocket.")
+        # 从 URL 中获取群组名称
+        # 例如 /ws/price_spread/ -> price_spread
+        # 例如 /ws/triangular_arbitrage/ -> triangular_arbitrage
+        self.room_group_name = self.scope['url_route']['kwargs'].get('group_name', 'default_group')
+
+        # 加入群组
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+
+        await self.accept()
 
     async def disconnect(self, close_code):
-        if self.scope["user"].is_authenticated:
-            await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
-            logger.info(f"User {self.scope['user']} disconnected.")
+        # 离开群组
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
 
-    # 这个方法的名字 `price_update` 对应于 channel_layer.group_send 中的 'type'
+    # --- 这里是关键的新增部分 ---
+
+    # 从 'price_spread' 群组接收消息的处理方法
+    # 这个方法名 'price_update' 必须与 stream_trades.py 中指定的 type 一致
     async def price_update(self, event):
         message = event['message']
-        # 将从group收到的消息原样发送给前端的WebSocket客户端
+
+        # 将消息发送到 WebSocket
+        await self.send(text_data=json.dumps(message))
+
+    # 从 'triangular_arbitrage' 群组接收消息的处理方法
+    # 这个方法名 'arbitrage_update' 必须与 stream_trades.py 中指定的 type 一致
+    async def arbitrage_update(self, event):
+        message = event['message']
+
+        # 将消息发送到 WebSocket
         await self.send(text_data=json.dumps(message))
